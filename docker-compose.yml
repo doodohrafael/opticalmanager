@@ -1,16 +1,75 @@
 services:
   db:
     container_name: optical-manager-db
-    image: postgres:17
+    image: postgres:17-alpine
     restart: always
+    command: ["postgres", "-p", "5432"]
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: opticalmanager
+      POSTGRES_USER: ${DB_USERNAME:-user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-opticalmanager}
     ports:
-      - "5555:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - optical_manager_network
+
+  api:
+    depends_on:
+      db:
+        condition: service_healthy
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: optical-manager-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - optical_manager_network
+    environment:
+
+      DB_HOST: ${DB_HOST:-optical-manager-db}
+      DB_NAME: ${DB_NAME:-opticalmanager}
+      DB_USERNAME: ${DB_USERNAME-user}
+      DB_PASSWORD: ${DB_PASSWORD-password}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://$${DB_HOST}/$${DB_NAME}
+
+      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+
+      JWT_SECRET: ${JWT_SECRET:-}
+      JWT_ACCESS_TOKEN_EXPIRATION_HOURS: ${JWT_ACCESS_TOKEN_EXPIRATION_HOURS:-}
+      JWT_REFRESH_TOKEN_EXPIRATION_DAYS: ${JWT_REFRESH_TOKEN_EXPIRATION_DAYS:-}
+
+      SPRING_AI_VERTEX_AI_GEMINI_PROJECT_ID: ${PROJECT_ID:-}
+      SPRING_AI_VERTEX_AI_GEMINI_LOCATION: southamerica-east1
+      SPRING_AI_VERTEX_AI_GEMINI_CHAT_OPTIONS_MODEL: gemini-2.5-flash
+
+      MERCADOPAGO_ACCESS_TOKEN: ${MERCADOPAGO_ACCESS_TOKEN:-}
+
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+
+      CLOUDFLARE_TOKEN: ${CLOUDFLARE_TOKEN:-}
+      CLOUDFLARE_R2_ACCOUNT_ID: ${CLOUDFLARE_R2_ACCOUNT_ID:-}
+      CLOUDFLARE_R2_ACCESS_KEY: ${CLOUDFLARE_R2_ACCESS_KEY:-}
+      CLOUDFLARE_R2_SECRET_KEY: ${CLOUDFLARE_R2_SECRET_KEY:-}
+      CLOUDFLARE_R2_BUCKET: ${CLOUDFLARE_R2_BUCKET:-}
+
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SERVER_PORT: 8080
 
 volumes:
   postgres_data:
+
+networks:
+  optical_manager_network:
+    driver: bridge
