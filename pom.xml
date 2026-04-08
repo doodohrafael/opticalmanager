@@ -11,7 +11,7 @@
 	</parent>
 
 	<groupId>br.com.rebootsystems</groupId>
-	<artifactId>opticalmanager</artifactId>
+	<artifactId>optical-manager-saas</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 
 	<name>Optical Manager MVP</name>
@@ -51,26 +51,21 @@
 
 	<properties>
 		<java.version>25</java.version>
-		<spring-ai.version>2.0.0-M4</spring-ai.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+		<spring-ai.version>2.0.0-M4</spring-ai.version>
 		<jjwt.version>0.12.6</jjwt.version>
 		<springdoc.version>3.0.2</springdoc.version>
-		<!-- <<springdoc.version>2.8.6</springdoc.version>-->
 		<testcontainers.version>1.20.4</testcontainers.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
-		<!-- <<mercadopago.version>2.1.28</mercadopago.version> -->
 		<mercadopago.version>2.8.0</mercadopago.version>
-		<!-- <<resend.version>3.1.0</resend.version> -->
 		<resend.version>4.13.0</resend.version>
 		<aws.sdk.version>2.29.43</aws.sdk.version>
 		<openpdf.version>2.0.3</openpdf.version>
 	</properties>
 
 	<dependencies>
-		<!--  ════════════════════════════════════════════════════════
-                     SPRING BOOT CORE
-                     ════════════════════════════════════════════════════════  -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
@@ -84,19 +79,16 @@
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
-		<!-- Job scheduling -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-quartz</artifactId>
 		</dependency>
 
-		<!-- Spring Security -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 
-		<!--  JJWT — JWT token generation and validation  -->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-api</artifactId>
@@ -115,20 +107,17 @@
 			<scope>runtime</scope>
 		</dependency>
 
-		<!--  Data Base -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
 
-		<!--  Driver PostgreSQL  -->
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
 		</dependency>
 
-		<!--  Flyway — Schema versioning and migrations  -->
 		<dependency>
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-core</artifactId>
@@ -138,69 +127,59 @@
 			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
 
-		<!-- Gemini AI -->
 		<dependency>
 			<groupId>org.springframework.ai</groupId>
 			<artifactId>spring-ai-starter-model-vertex-ai-gemini</artifactId>
 		</dependency>
 
-		<!-- DOC API — Swagger / OpenAPI -->
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>${springdoc.version}</version>
 		</dependency>
 
-		<!--  PDF Generate -->
 		<dependency>
 			<groupId>com.github.librepdf</groupId>
 			<artifactId>openpdf</artifactId>
 			<version>${openpdf.version}</version>
 		</dependency>
 
-		<!--  API Payment — Mercado Pago -->
 		<dependency>
 			<groupId>com.mercadopago</groupId>
 			<artifactId>sdk-java</artifactId>
 			<version>${mercadopago.version}</version>
 		</dependency>
 
-		<!--  Transactional emails — Resend -->
 		<dependency>
 			<groupId>com.resend</groupId>
 			<artifactId>resend-java</artifactId>
 			<version>${resend.version}</version>
 		</dependency>
 
-		<!--  Cloudflare R2 - Cloud Storage -->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>
 			<version>${aws.sdk.version}</version>
 		</dependency>
 
-		<!-- MapStruct - Mapping between domain entities and DTOs/Records -->
 		<dependency>
 			<groupId>org.mapstruct</groupId>
 			<artifactId>mapstruct</artifactId>
 			<version>${mapstruct.version}</version>
 		</dependency>
 
-		<!--  Spring Boot Test — JUnit 5 + Mockito + MockMvc  -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 
-		<!--  Spring Security Test — Authentication/Authorization tests  -->
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 
-		<!--  Testcontainers JUnit 5 — Integration with Docker containers  -->
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>junit-jupiter</artifactId>
@@ -208,7 +187,6 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!--  Testcontainers PostgreSQL — Real Bank in integration tests  -->
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>postgresql</artifactId>
@@ -216,10 +194,16 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!--  DevTools — Hot reload in local development  -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-docker-compose</artifactId>
 			<scope>runtime</scope>
 			<optional>true</optional>
 		</dependency>
@@ -239,7 +223,6 @@
 
 	<build>
 		<plugins>
-			<!--  Spring Boot Maven Plugin — Generate JAR exec  -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
@@ -248,7 +231,6 @@
 				</configuration>
 			</plugin>
 
-			<!--  Maven Compiler — Java 25 + MapStruct annotation processor  -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -259,7 +241,6 @@
 						<arg>--enable-preview</arg>
 					</compilerArgs>
 					<annotationProcessorPaths>
-						<!--  MapStruct processor — mapper generation at compile time -->
 						<path>
 							<groupId>org.mapstruct</groupId>
 							<artifactId>mapstruct-processor</artifactId>
@@ -269,21 +250,18 @@
 				</configuration>
 			</plugin>
 
-			<!--  Surefire — Executes unit tests (without IT)  -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
 					<argLine>--enable-preview</argLine>
 					<excludes>
-						<!--  Excludes integration tests from the standard cycle  -->
 						<exclude>**/*IT.java</exclude>
 						<exclude>**/*IntegrationTest.java</exclude>
 					</excludes>
 				</configuration>
 			</plugin>
 
-			<!--  Failsafe — Executes integration tests (*IT.java)  -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
@@ -306,7 +284,6 @@
 		</plugins>
 	</build>
 
-	<!-- Repositores Spring AI (milestone/snapshot) -->
 	<repositories>
 		<repository>
 			<id>spring-milestones</id>
