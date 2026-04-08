@@ -36,7 +36,7 @@ Melhorar experiência→ comprovante PDF, status da OS, PIX QR Code,
 
 | Camada | Tecnologia |
 |---|---|
-| Linguagem | Java 21 |
+| Linguagem | Java 25 |
 | Framework | Spring Boot 3.x |
 | Segurança | Spring Security + JWT (JJWT) |
 | ORM | Spring Data JPA + Hibernate |
