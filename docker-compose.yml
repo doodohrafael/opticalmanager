@@ -41,7 +41,7 @@ services:
       DB_NAME: ${DB_NAME:-opticalmanager}
       DB_USERNAME: ${DB_USERNAME-user}
       DB_PASSWORD: ${DB_PASSWORD-password}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://$${DB_HOST}/$${DB_NAME}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${DB_HOST:-optical-manager-db}:5432/${DB_NAME:-opticalmanager}
 
       SPRING_FLYWAY_ENABLED: "true"
       SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
