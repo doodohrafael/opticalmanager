@@ -9,7 +9,7 @@ COPY mvnw .
 RUN ./mvnw dependency:go-offline -B
 
 COPY src/ src/
-RUN ./mvnw package -DskipTests
+RUN ./mvnw package -DskipTests --enable-preview -B
 
 FROM eclipse-temurin:25-jre-alpine AS runtime
 
