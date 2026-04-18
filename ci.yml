@@ -1,0 +1,69 @@
+name: CI
+on:
+  push:
+    branches: [ "main", "develop", "feature/**", "fix/**" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    services:
+      name: postgres-integration-tests
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: opticalmanager_test
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build and test
+        run: ./mvnw verify -B --enable-preview
+        env:
+          SPRING_PROFILES_ACTIVE: test
+
+          DB_HOST: localhost:5432
+          DB_NAME: opticalmanager_test
+          DB_USERNAME: user
+          DB_PASSWORD: password
+
+          JWT_SECRET: ci-test-secret-key-256bits-nao-usar-em-producao-000000000000
+          JWT_ACCESS_TOKEN_EXPIRATION_HOURS: 1
+          JWT_REFRESH_TOKEN_EXPIRATION_DAYS: 7
+
+          PROJECT_ID: ci-test-project
+          MERCADOPAGO_ACCESS_TOKEN: TEST-ci-mock-token
+          RESEND_API_KEY: re_ci_test_key
+          CLOUDFLARE_TOKEN: ""
+          CLOUDFLARE_R2_ACCOUNT_ID: ""
+          CLOUDFLARE_R2_ACCESS_KEY: ""
+          CLOUDFLARE_R2_SECRET_KEY: ""
+          CLOUDFLARE_R2_BUCKET: ""
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: target/surefire-reports/
+          retention-days: 7
