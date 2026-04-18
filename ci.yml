@@ -42,7 +42,7 @@ jobs:
         env:
           SPRING_PROFILES_ACTIVE: test
 
-          DB_HOST: optical-manager-db:5432
+          DB_HOST: optical-manager-db
           DB_NAME: opticalmanager_test
           DB_USERNAME: user
           DB_PASSWORD: password
