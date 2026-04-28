@@ -37,4 +37,5 @@ build/
 
 # Markdown files
 *.md
+docs/
 
