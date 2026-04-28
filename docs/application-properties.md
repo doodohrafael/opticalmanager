@@ -29,13 +29,13 @@ spring.application.name=opticalmanager
 
 ### Banco de Dados
 
-| Propriedade                          | Valor / Variável de Ambiente                          | Padrão Local     |
-|--------------------------------------|-------------------------------------------------------|------------------|
-| `spring.datasource.url`              | `jdbc:postgresql://${DB_HOST}/${DB_NAME}`             | `localhost:5432/opticalmanager` |
-| `spring.datasource.username`         | `${DB_USERNAME}`                                      | `user`           |
-| `spring.datasource.password`         | `${DB_PASSWORD}`                                      | `password`       |
-| `spring.datasource.driver-class-name`| `org.postgresql.Driver`                               | —                |
-| `spring.jpa.database-platform`       | `org.hibernate.dialect.PostgreSQLDialect`             | —                |
+| Propriedade                          | Valor / Variável de Ambiente                   | Padrão Local     |
+|--------------------------------------|------------------------------------------------|------------------|
+| `spring.datasource.url`              | `jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}` | `localhost:5432/opticalmanager` |
+| `spring.datasource.username`         | `${DB_USERNAME}`                               | `user`           |
+| `spring.datasource.password`         | `${DB_PASSWORD}`                               | `password`       |
+| `spring.datasource.driver-class-name`| `org.postgresql.Driver`                        | —                |
+| `spring.jpa.database-platform`       | `org.hibernate.dialect.PostgreSQLDialect`      | —                |
 
 > A sintaxe `${VAR:default}` usa a variável de ambiente se definida; caso contrário, aplica o valor padrão após `:`.
 
@@ -117,7 +117,7 @@ Ativado quando `SPRING_PROFILES_ACTIVE=dev`.
 | `spring.jpa.show-sql`                         | `true` | Exibe as queries SQL no console                 |
 | `spring.jpa.properties.hibernate.format_sql`  | `true` | Formata as queries SQL para leitura facilitada  |
 
-> Útil para depuração de queries Hibernate e verificação do filtro de multi-tenancy (veja sobre multi-tenancy no arquivo `.cursorrules`).
+> Útil para depuração de queries Hibernate e verificação do filtro de multi-tenancy (veja sobre multi-tenancy no arquivo [`docs/technical-rules.md`](technical-rules.md)).
 
 ---
 

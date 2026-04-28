@@ -32,7 +32,7 @@
 | `JWT_REFRESH_TOKEN_EXPIRATION_DAYS` | Duração do refresh token em dias                                 | `7`                      | Sim         |
 
 > [!IMPORTANT]
-> O `JWT_SECRET` nunca deve ser hardcoded no código. Leia a regra em `.cursorrules` → seção **Segurança — JWT e RBAC**.
+> O `JWT_SECRET` nunca deve ser hardcoded no código. Leia a regra em [`docs/security.md`](technical-rules.md).
 > Para gerar uma nova chave segura: `openssl rand -hex 32`
 
 ---
@@ -101,7 +101,7 @@ CLOUDFLARE_R2_SECRET_KEY=
 CLOUDFLARE_R2_BUCKET=
 
 # Banco de Dados
-DB_HOST=localhost:5432
+DB_HOST=containerdbname:5432
 DB_NAME=opticalmanager
 DB_USERNAME=user
 DB_PASSWORD=password

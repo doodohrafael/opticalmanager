@@ -9,7 +9,7 @@
 | Campo         | Valor                                      |
 |---------------|--------------------------------------------|
 | `groupId`     | `br.com.rebootsystems`                     |
-| `artifactId`  | `opticalmanager`                           |
+`artifactId`  | `optical-manager-saas`                     |
 | `version`     | `1.0.0-SNAPSHOT`                           |
 | `name`        | Optical Manager MVP                        |
 | `description` | Intelligent management system for optical stores with AI integration. |
@@ -55,15 +55,15 @@
 | `java.version`                     | `25`           | Versão do Java utilizada                       |
 | `project.build.sourceEncoding`     | `UTF-8`        | Encoding dos fontes                            |
 | `project.reporting.outputEncoding` | `UTF-8`        | Encoding dos relatórios                        |
-| `spring-ai.version`                | `2.0.0-M4`     | Versão da BOM do Spring AI                     |
-| `jjwt.version`                     | `0.12.6`       | Versão da lib JJWT para JWT                    |
-| `springdoc.version`                | `3.0.2`        | Versão do SpringDoc OpenAPI (Swagger)          |
-| `testcontainers.version`           | `1.20.4`       | Versão do Testcontainers                       |
-| `mapstruct.version`                | `1.6.3`        | Versão do MapStruct                            |
-| `mercadopago.version`              | `2.8.0`        | Versão do SDK Mercado Pago                     |
-| `resend.version`                   | `4.13.0`       | Versão da lib Resend (email transacional)      |
-| `aws.sdk.version`                  | `2.29.43`      | Versão do AWS SDK v2 (usado para Cloudflare R2)|
-| `openpdf.version`                  | `2.0.3`        | Versão do OpenPDF (geração de PDF)             |
+| `spring-ai.version`                | `1.0.5`    | Versão do Spring AI starter (Vertex AI Gemini) |
+| `jjwt.version`                     | `0.12.6`   | Versão da lib JJWT para JWT                    |
+| `springdoc.version`                | `2.8.6`    | Versão do SpringDoc OpenAPI (Swagger)          |
+| `testcontainers.version`           | `1.20.4`   | Versão do Testcontainers                       |
+| `mapstruct.version`                | `1.6.3`    | Versão do MapStruct                            |
+| `mercadopago.version`              | `2.8.0`    | Versão do SDK Mercado Pago                     |
+| `resend.version`                   | `4.13.0`   | Versão da lib Resend (email transacional)      |
+| `aws.sdk.version`                  | `2.29.43`  | Versão do AWS SDK v2 (usado para Cloudflare R2)|
+| `openpdf.version`                  | `2.0.3`    | Versão do OpenPDF (geração de PDF)             |
 
 ---
 
@@ -179,7 +179,7 @@
 
 | BOM                  | Versão         | Finalidade                                            |
 |----------------------|----------------|-------------------------------------------------------|
-| `spring-ai-bom`      | `2.0.0-M4`     | Alinha versões de todos os artefatos Spring AI        |
+| `spring-ai-bom`      | `1.0.5`    | Alinha versões de todos os artefatos Spring AI        |
 
 ---
 
