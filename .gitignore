@@ -36,7 +36,4 @@ build/
 .env
 
 # Markdown files
-*.md
 !README.md
-docs/
-
