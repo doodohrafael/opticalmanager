@@ -98,4 +98,4 @@ CLOUDFLARE_R2_BUCKET=nome_do_bucket
 ```
 
 ## 📖 Documentação Adicional
-A documentação detalhada está disponível na pasta `docs/` (atualmente ignorada no repositório remoto para proteção de detalhes arquiteturais sensíveis).
+A documentação detalhada está disponível na pasta `docs/`.
