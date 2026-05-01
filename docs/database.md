@@ -1,7 +1,7 @@
 # Convenções de Banco de Dados — Optical Manager
 
 ## Convenções de Nomenclatura
-- **Tabelas**: `snake_case` plural (ex: `service_orders`, `stock_movements`).
+- **Tabelas**: `snake_case` singular (ex: `service_order`, `stock_movement`).
 - **Colunas**: `snake_case` (ex: `tenant_id`, `created_at`).
 - **PKs**: Sempre `UUID DEFAULT gen_random_uuid()`.
 - **FKs**: `{entidade}_id` (ex: `client_id`, `vendor_id`).
@@ -36,7 +36,12 @@
 
 ---
 
-## Flyway (Migrations)
+## Consultas (Queries)
+- **Consultas Nativas (SQL Puro)**: Todas as consultas ao banco de dados devem ser implementadas utilizando **Native Queries** (SQL nativo do PostgreSQL).
+- **Justificativa**: Garantir performance máxima, uso total de recursos do PostgreSQL 17 (como índices parciais e JSONB) e evitar abstrações custosas do JPQL/Criteria.
+- **Implementação**: No Spring Data JPA, utilize `@Query(value = "...", nativeQuery = true)`.
+
+---
 - **Nomenclatura**: `V{n}__{descricao_snake_case}.sql`.
 - **Imutabilidade**: Arquivos já executados no banco **nunca** devem ser alterados. Se precisar corrigir algo, crie uma nova versão.
 - **Estrutura**: Um arquivo por domínio na criação inicial (V1).

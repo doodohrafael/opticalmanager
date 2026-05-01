@@ -1,13 +1,29 @@
 # Regras de Negócio e Domínios — Optical Manager
 
-## Domínios Principais e Regras
-
 ### 1. Clientes e Contatos
 - **Contatos**: Entidade polimórfica associada a Clientes e Fornecedores. Tipos: `MOBILE`, `PHONE`, `EMAIL`, `WHATSAPP`.
 - **Principal**: Cada tipo pode ter um contato marcado como principal. O `WHATSAPP` principal é usado para notificações automáticas.
 - **Isolamento**: Email é único **por tenant**, não globalmente.
 
-### 2. Receita Médica
+---
+
+## 2. Cadastro do Tenant e Trial
+
+### Cadastro em Duas Fases
+1. **Fase 1 (Auto-cadastro)**: `trade_name`, `responsible_name`, `responsible_phone`, `email`, senha. Acesso bloqueado até confirmação de email.
+2. **Fase 2 (Onboarding)**: `company_name`, `cnpj`, `responsible_cpf`, `logo`.
+- **Email Único**: O email é a identidade global (login + faturamento).
+- **Responsible Phone**: Sempre o WhatsApp do dono da ótica.
+
+### Trial e Assinatura
+- **Trial**: 14 dias grátis, sem cartão. Alertas nos dias 12 e 13. Bloqueio no dia 14.
+- **Assinatura**: Obrigatória para uso após trial. `responsible_cpf` é mandatório para integração com Mercado Pago.
+- **Plano Free**: Inexistente. O modelo é focado em SaaS de baixo custo (R$ 149/mês).
+
+---
+
+## 3. Receita Médica
+
 - **Eixo (Axis)**: Deve estar entre 0 e 180 (validado no Value Object).
 - **Adição**: Usada apenas para lentes bifocais ou progressivas.
 - **Origem**: `DOCTOR` (Médico), `OPTICIAN` (Optometrista) ou `CLIENT_INFORMED` (Informado pelo cliente). No caso de `CLIENT_INFORMED`, o campo de observação é obrigatório.

@@ -1,3 +1,53 @@
+# Regras do Projeto — Optical Manager MVP Saas
+> Este arquivo é o índice principal e a fonte da verdade do projeto.
+> Toda IA ou desenvolvedor deve consultar este índice e os documentos específicos em `/docs` antes de qualquer implementação.
+> Atualizado em: 2026-04-25
+
+---
+
+## 1. Princípios de Arquitetura (Resumo)
+
+- **Multi-tenancy Rígido**: Todo registro tem `tenant_id`. Filtros automáticos via Hibernate. Jamais vazar dados entre tenants.
+- **Arquitetura DDD**: Monolito modular. Dependência: `API -> Application -> Domain <- Infrastructure`.
+- **Idioma**: Código em Inglês (técnico). Mensagens para usuário e documentação em Português.
+- **Qualidade**: TDD obrigatório. Pirâmide: 70% Unitários, 20% Integração, 10% API.
+- **Segurança**: Spring Security stateless com JWT e RBAC (`resource:action`).
+
+---
+
+## 2. Índice de Documentação
+
+| Assunto | Arquivo de Referência |
+|---|---|
+| **Visão e Estratégia** | [`docs/product.md`](docs/product.md) |
+| **Arquitetura e Infra** | [`docs/architecture.md`](docs/architecture.md) |
+| **Regras de Negócio** | [`docs/business-rules.md`](docs/business-rules.md) |
+| **Padrões de Código** | [`docs/development.md`](docs/development.md) |
+| **Convenções** | [`docs/conventions.md`](docs/conventions.md) |
+| **Segurança e JWT** | [`docs/security.md`](docs/security.md) |
+| **Banco de Dados** | [`docs/database.md`](docs/database.md) |
+| **IA (Spring AI)** | [`docs/ai.md`](docs/ai.md) |
+| **Testes e Qualidade** | [`docs/tests.md`](docs/tests.md) |
+| **Variáveis (.env)** | [`docs/env.md`](docs/env.md) |
+| **Observabilidade** | [`docs/observability.md`](docs/observability.md) |
+| **CI** | [`docs/ci.md`](docs/ci.md) |
+| **CD** | [`docs/cd.md`](docs/cd.md) |
+
+---
+
+## 3. Comandos Rápidos
+
+- **Build**: `./mvnw clean install`
+- **Testes**: `./mvnw test`
+- **Run**: `./mvnw spring-boot:run`
+
+---
+
+## 4. Lembretes Críticos
+
+1. **Domínio Puro**: Regras de negócio ficam no `domain`, sem dependências de frameworks.
+2. **Confirmação Humana**: Toda sugestão da AI deve ser validada antes de salvar.
+3. **Imutabilidade**: Estados finais (`DELIVERED`, `CANCELLED`), caixas fechados e migrations executadas nunca mudam.
 # Optical Manager — Regras do Projeto
 > Fonte da verdade. Consultar antes de qualquer implementação.
 > Atualizado em: 2026-04-19
@@ -76,6 +126,10 @@ Tabela nomeada app_user. JPA: @Table(name = "app_user")
 V{n}__{descricao}.sql  — dois underscores
 Arquivo executado = imutável — nova alteração = nova migration
 ```
+
+**Consultas (Queries):**
+- **Sempre** implementar **Native Queries** (SQL puro do PostgreSQL).
+- JPQL e Criteria API são proibidos para garantir performance e uso total do PG17.
 
 ---
 
