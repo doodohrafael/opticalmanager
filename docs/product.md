@@ -17,6 +17,14 @@
 - PIX com QR Code gerado na tela.
 - Preço acessível — R$ 149/mês.
 
+**Comparativo de Mercado:**
+| Atributo | Optical Manager | Concorrentes Tradicionais |
+|---|---|---|
+| Preço | R$ 149/mês (sem fidelidade) | R$ 299-529/mês (com contrato) |
+| IA | Nativa (leitura de receita) | Inexistente ou via terceiros caro |
+| Interface | PWA Moderno Mobile-first | Sistemas desktop legados |
+| Trial | 14 dias grátis (sem cartão) | Raro ou com burocracia |
+
 ---
 
 ## Planos e Período de Teste
@@ -52,10 +60,10 @@
 ---
 
 ## Viabilidade Financeira (Break-even)
-- **Custo fixo base**: R$ 60/mês.
-- **Custo AI (Claude/Gemini)**: Est. R$ 4/mês por cliente ativo.
+- **Custo fixo base**: R$ 60/mês (Servidores + Infra básica).
+- **Custo AI (Claude/Gemini)**: Est. R$ 4/mês por cliente ativo (uso médio).
 - **Ponto de Equilíbrio**: 2 clientes pagantes cobrem os custos fixos e variáveis iniciais.
-- **Escalabilidade**: Lucro líquido expressivo a partir de 10 clientes.
+- **Lembrete**: Plano Free -> Nunca. O modelo de baixo custo garante a sustentabilidade.
 
 ---
 
