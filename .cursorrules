@@ -1,808 +1,530 @@
-# Regras do Projeto — Optical Manager MVP Saas
-> Este arquivo é a fonte da verdade do projeto.
-> Toda IA ou desenvolvedor deve consultá-lo antes de implementar qualquer coisa.
-> Atualizado em: 2026-03-26
+# Optical Manager — Regras do Projeto
+> Fonte da verdade. Consultar antes de qualquer implementação.
+> Atualizado em: 2026-04-19
 
 ---
 
-## Visão do Produto
+## Produto
 
-**Posicionamento:**
-> "O sistema que otimiza suas operações, aumenta suas vendas
->  e melhora a experiência dos seus clientes."
-
-**Público-alvo MVP:** Óticas de bairro sem sistema ou com sistema ruim.
-
-**Três pilares de valor:**
-```
-Otimizar operações  → leitura de receita por foto, OS automatizada,
-                      caixa automatizado, estoque com reserva
-Aumentar vendas     → alerta de receita vencendo, venda domiciliar,
-                      histórico completo do cliente
-Melhorar experiência→ comprovante PDF, status da OS, PIX QR Code,
-                      interface mobile-friendly
-```
+**Nome:** Optical Manager
+**Empresa:** Reboot Systems (`br.com.rebootsystems`)
+**Repositório:** github.com/doodohrafael/opticalmanager
+**Posicionamento:** SaaS de gestão para óticas de bairro — moderno, acessível, com AI.
 
 **Diferenciais:**
-- Leitura de receita por foto (AI) — elimina digitação e erro
-- Alerta automático de receita vencendo — cliente volta sem ligar
-- PIX com QR Code gerado na tela
-- Interface moderna e mobile-friendly (PWA)
-- Preço acessível — R$ 149/mês
+```
+R$ 149/mês sem fidelidade   vs  R$ 299-529/mês com contrato
+AI para leitura de receita  vs  sem AI nos concorrentes
+PWA mobile-first            vs  interfaces antigas
+14 dias grátis sem cartão   vs  sem trial na maioria
+```
 
 ---
 
-## Stack Tecnológica
+## Stack
 
 | Camada | Tecnologia |
 |---|---|
 | Linguagem | Java 25 |
-| Framework | Spring Boot 3.x |
-| Segurança | Spring Security + JWT (JJWT) |
+| Framework | Spring Boot 4.0.5 |
+| Segurança | Spring Security + JWT stateless (JJWT 0.12.6) |
 | ORM | Spring Data JPA + Hibernate |
-| Banco | PostgreSQL 17+ |
+| Banco | PostgreSQL 17 |
 | Migrations | Flyway |
-| AI | Spring AI + Gemini Flash 2.5 |
-| Testes | JUnit 5 + Mockito + Testcontainers |
-| Documentação API | SpringDoc OpenAPI (Swagger em interface separada) |
+| AI | Spring AI 1.0.5 + Gemini 2.5 Flash (free tier — southamerica-east1) |
+| Testes | JUnit 5 + Mockito + Testcontainers 1.20.4 |
+| Docs API | SpringDoc OpenAPI 2.8.6 |
 | Build | Maven |
-| Deploy | Railway |
-| Storage fotos | Cloudflare R2 |
-| Email transacional | Resend (grátis até 3k/mês) |
-| Pagamento assinatura SaaS | Mercado Pago (recorrência) |
-| PIX QR Code na ótica | Mercado Pago API |
-| Frontend | React + Tailwind CSS (PWA) |
+| Observabilidade | Micrometer + Prometheus + Grafana Cloud (free tier) |
+| Deploy | GCloud Cloud Run + Supabase PostgreSQL |
+| Storage | Cloudflare R2 (gratuito até 10GB) |
+| Email | Resend (gratuito até 3k/mês) |
+| Pagamentos | Mercado Pago (assinatura + PIX QR Code + boleto digital) |
+| Frontend | React + Tailwind CSS (PWA — Fase 2) |
+| CI/CD | GitHub Actions |
+
+**Versões críticas — não atualizar sem validar:**
+```
+Spring AI  → 1.0.5 estável  (2.0.0-Mx são milestones instáveis)
+SpringDoc  → 2.8.6           (3.x conflita com Jackson 3 do Spring Boot 4)
+```
+
+---
+
+## Convenções de Banco de Dados
+
+```
+Tabelas     → singular (client, sale, service_order)
+PKs         → UUID DEFAULT gen_random_uuid()
+FKs         → fk_{tabela}_{coluna}     ex: fk_sale_client_id
+CHECKs      → chk_{tabela}_{regra}     ex: chk_sale_status
+UNIQUEs     → uq_{tabela}_{coluna}     ex: uq_tenant_email
+PKs compostas → pk_{tabela}            ex: pk_role_permission
+Índices     → idx_{tabela}_{coluna}    ex: idx_client_tenant_id
+Dinheiro    → NUMERIC(10,2) — nunca FLOAT
+Enums       → VARCHAR com CHECK constraint
+```
+
+**app_user — não user:**
+```
+user é palavra reservada no PostgreSQL.
+Tabela nomeada app_user. JPA: @Table(name = "app_user")
+```
+
+**Flyway:**
+```
+V{n}__{descricao}.sql  — dois underscores
+Arquivo executado = imutável — nova alteração = nova migration
+```
+
+---
+
+## Cadastro do Tenant
+
+O cadastro deve ser completo desde o início — dados usados para:
+faturamento, suporte, NF-e futura, onboarding, analytics, comunicação.
+
+**Campos obrigatórios no cadastro:**
+```
+trade_name         → nome fantasia da ótica (aparece no sistema, comprovantes, etiquetas)
+company_name       → razão social (NF-e Fase 2)
+responsible_name   → nome completo do dono
+responsible_phone  → WhatsApp do dono (suporte, alertas críticos)
+email              → único globalmente — login + faturamento + toda comunicação
+```
+
+**Campos opcionais (onboarding):**
+```
+cnpj               → validação de formato + dígitos no backend (MVP)
+                     integração ReceitaWS para validar existência (Fase 2)
+responsible_cpf    → obrigatório para cobrança Mercado Pago
+logo_url           → Cloudflare R2 — aparece em comprovantes e etiquetas
+```
+
+**Dois nomes distintos:**
+```
+trade_name   → "Ótica Silva"          comercial — clientes, sistema, etiquetas
+company_name → "Silva Ótica LTDA"    jurídico — NF-e, documentos fiscais
+```
+
+**Email é único e serve para tudo:**
+```
+Login do sistema
+Comunicações (alertas, onboarding, trial)
+Faturamento e recibos
+Não há separação entre email de login e email do responsável
+```
+
+**Validação MVP:**
+```
+Email     → confirmação obrigatória — acesso bloqueado até confirmar
+CNPJ      → dígitos verificadores no backend (algoritmo público, sem API)
+Celular   → formato apenas no MVP — verificação por código na Fase 2
+```
+
+---
+
+## Endereço — Padrão de Modelagem
+
+**Branch e Supplier — Value Object (@Embeddable):**
+```
+Endereço embutido diretamente na tabela (zip_code, street, etc.)
+Sem tabela separada — o endereço não tem identidade própria
+Vive e morre com a entidade dona
+```
+
+**Client Address — Entidade própria (Fase 2):**
+```
+client_address (id, client_id, label, zip_code, street...)
+Um cliente pode ter N endereços
+is_default = true para o endereço padrão
+Soft delete (active = false) — dados preservados no histórico de vendas
+```
+
+**Snapshot de entrega em sale:**
+```
+Ao confirmar venda com entrega:
+  1. client_address_id → FK para o endereço escolhido (nullable)
+  2. delivery_* → cópia dos campos no momento da venda (IMUTÁVEL)
+
+Se o cliente deletar o endereço depois:
+  client_address_id → NULL (ON DELETE SET NULL)
+  delivery_street   → "Rua A, 100" — preservado para sempre
+
+Princípio: snapshot = imutabilidade histórica
+Mesmo padrão do sale_item que preserva o preço no momento da venda.
+```
 
 ---
 
 ## Arquitetura
 
-### Padrão: Monolito Modular com DDD
-
+### Monolito Modular DDD
 ```
-API Layer         → Controllers, DTOs, filtros HTTP
-Application Layer → Use Cases, Commands, Events
-Domain Layer      → Entidades, Value Objects, regras de negócio (Java puro)
-Infrastructure    → Repositories JPA, Flyway, JWT, AI Client, Storage
+API Layer         → Controllers, DTOs
+Application Layer → Use Cases, Commands
+Domain Layer      → Entidades, Value Objects (Java puro, sem Spring)
+Infrastructure    → Repositories JPA, JWT, AI, Storage, Email
 ```
 
-**Regra de dependência — NUNCA violar:**
+**Regra de dependência — nunca violar:**
 ```
 API → Application → Domain ← Infrastructure
 ```
-- Domain nunca conhece Spring, JPA ou qualquer framework
-- Use Cases nunca conhecem HTTP ou JSON
-- Controllers nunca contêm regra de negócio
 
-### Módulos (um por domínio)
+### Módulos
 ```
-shared         → Tenant, Filial, TenantContext, TenantSettings
-identidade     → User, Role, Permission, JWT
-clientes       → Client, Contact, Prescription, PrescriptionGrade
-produtos       → Frame, FrameSku, LensType, ContactLens
-estoque        → StockItem, StockMovement
-vendas         → ServiceOrder, Sale, SaleItem, Payment
-financeiro     → CashRegister, Transaction
-notificacoes   → PrescriptionExpiryAlert, NotificationService
+shared         → TenantContext, TenantAware, TenantEntityListener, Exceptions
+identity       → AppUser, Role, Permission, JWT, RefreshToken, SecurityConfig
+clients        → Client, Contact, Prescription, PrescriptionGrade, ClientAddress (Fase 2)
+products       → Frame, FrameSku, LensType, LensGradeRange, ContactLens, Supplier
+stock          → StockItem, StockMovement, PurchaseOrder
+sales          → ServiceOrder, Sale, SaleItem, Payment
+financial      → CashRegister, Transaction
+notifications  → NotificationLog, jobs
+reports        → relatórios por período
+labels         → geração de PDF (OS e produto)
 ```
 
 ---
 
-## Idioma do Código
+## Segurança
 
-```
-Inglês   → estrutura técnica, métodos, variáveis, classes, pacotes
-           find, save, delete, update, Repository, Service, Controller
-           nomes de entidades e campos no banco
-
-Português → mensagens de erro para o usuário final
-            comentários de regras de negócio complexas
-            documentação ADR e README de módulos
-```
-
-**Exemplos:**
+### Spring Security — stateless JWT
 ```java
-// Estrutura — inglês
-public class ServiceOrderRepository { }
-public Optional<ServiceOrder> findById(UUID id) { }
+http
+  .csrf(AbstractHttpConfigurer::disable)
+  .sessionManagement(s -> s.sessionCreationPolicy(STATELESS))
+  .authorizeHttpRequests(auth -> auth
+      .requestMatchers("/api/auth/**").permitAll()
+      .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
+      .anyRequest().authenticated())
+  .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+```
 
-// Mensagem de usuário — português
-"Ordem de serviço não encontrada."
-"Estoque insuficiente para este produto."
-"Você atingiu o limite do seu plano. Faça upgrade para continuar."
+### .env
+- **NUNCA** commitar — deve estar no `.gitignore`
+- Credentials expostas → revogar imediatamente nas plataformas
+- Usar `.env.example` com valores fictícios
+
+### JWT
+```
+Access token  → 1 hora
+Refresh token → 7 dias, SHA-256 no banco, rotacionado a cada uso
+
+Payload:
+{
+  "sub": "userId",
+  "tenantId": "uuid",
+  "branchId": "uuid",
+  "role": "VENDOR",
+  "permissions": ["sales:create"],
+  "tokenVersion": 3
+}
+
+Token versioning: ao mudar permissões → tokenVersion++
+JWT com versão diferente → 401 → força re-login
+```
+
+### Permissões `resource:action`
+```
+sales:create    sales:view      sales:cancel    sales:discount
+clients:create  clients:view    clients:edit
+stock:view      stock:edit      stock:purchase-order
+cash:open       cash:close      cash:view
+reports:view    labels:print    ai:read-prescription
+users:manage    roles:configure notifications:view
+```
+
+### Papéis padrão (criados por tenant no cadastro)
+| Papel | Permissões |
+|---|---|
+| OWNER | todas |
+| MANAGER | todas exceto `users:manage` e `roles:configure` |
+| VENDOR | sales, clients — sem cash, reports financeiros, administração |
+
+---
+
+## Observabilidade
+
+```
+Micrometer → /actuator/prometheus → Grafana Cloud free tier
+(10k séries, 14 dias retenção — sem custo no servidor)
+
+Endpoints expostos:
+  /actuator/health      → liveness/readiness
+  /actuator/prometheus  → métricas Prometheus
+
+Métricas de negócio customizadas nos use cases:
+  Counter: os.opened, ai.prescription.read, sale.confirmed
+  Gauge:   plan.os.usage (% do limite mensal)
 ```
 
 ---
 
 ## Multi-tenancy
 
-- **Todo** registro no banco tem `tenant_id UUID NOT NULL`
-- `TenantContext` (ThreadLocal) armazena o tenant da requisição
-- `JwtAuthFilter` popula o `TenantContext` no início de cada requisição
-- `TenantContext.clear()` chamado no `finally` — sempre, sem exceção
-- Hibernate Filter aplica `WHERE tenant_id = ?` automaticamente em todo SELECT
-- `@PrePersist` injeta `tenant_id` em todo INSERT automaticamente
-- `@PreUpdate` valida que `tenant_id` não foi alterado
-- **Nunca** escrever query sem `tenant_id`
+```
+tenant_id em toda tabela operacional
+TenantContext (ThreadLocal) populado pelo JwtAuthFilter
+TenantContext.clear() sempre no finally
+@PrePersist injeta tenant_id em todo INSERT
+@PreUpdate valida que tenant_id não foi alterado
+```
 
 ---
 
-## Filiais
+## Plano e Trial
 
-- Estrutura modelada desde o início — `branch_id` nas tabelas
-- MVP: **1 filial padrão** criada automaticamente no cadastro do tenant
-- Múltiplas filiais habilitáveis no plano Max (Fase 2)
-- Usuário pertence a uma filial
-- Relatórios por filial ou consolidados (Fase 2)
-
----
-
-## Planos e Período de Teste
-
-### MVP — apenas plano Pro
-
-| Feature | Pro |
+### Pro — único plano no MVP (R$ 149/mês)
+| Feature | Limite |
 |---|---|
-| OS por mês | 200 |
+| OS por mês | 50 |
 | Usuários | 5 |
 | Filiais | 1 |
-| Relatórios avançados | ✅ |
-| AI — leitura de receita | 50/mês |
-| Alerta receita vencendo | ✅ |
+| AI leitura de receita | 30/mês |
+| Email transacional | ✅ |
 | PIX QR Code | ✅ |
-| Suporte | Email |
-| Período de teste | 14 dias grátis |
+| Boleto digital (MP) | ✅ |
+| Alerta receita vencendo | ✅ email |
+| Etiquetas PDF | ✅ |
+| Relatórios básicos | ✅ |
+| Pedido de compra | ✅ |
 | Preço | R$ 149/mês |
 
-### Regras do período de teste:
-- 14 dias grátis — sem cartão no cadastro
-- Plano Pro completo durante o teste
-- Dia 12 → email "seu teste expira em 2 dias"
-- Dia 13 → email "último dia do seu teste"
-- Dia 14 → acesso bloqueado → tela de escolha de plano
-- Dados preservados por 30 dias após expiração
-- Se assinar dentro dos 30 dias → tudo restaurado
-
-### Tenant model:
-```java
-public class Tenant {
-    UUID id;
-    String name;           // VARCHAR(60)
-    String cnpj;           // CHAR(14)
-    Plan plan;             // PRO
-    boolean branchesEnabled;        // false no MVP
-    LocalDate trialStartedAt;
-    LocalDate trialExpiresAt;       // trialStartedAt + 14 dias
-    boolean trialActive;
-    boolean subscriptionActive;
-
-    public boolean canOperate() {
-        return subscriptionActive ||
-               (trialActive && LocalDate.now().isBefore(trialExpiresAt));
-    }
-}
+### Trial
 ```
-
-### Decisões de plano:
-- Plano Free → **nunca**
-- Plano Max → Fase 2 (R$ 347/mês, filiais + AI avançado)
-- Crediário próprio → **nunca**
-- Convênio → **nunca**
-
----
-
-## Segurança — JWT e RBAC
-
-### Token JWT contém:
+14 dias grátis, sem cartão
+Dia 12 → email "expira em 2 dias"
+Dia 13 → email "último dia"
+Dia 14 → acesso bloqueado → tela upgrade
+Dados preservados 30 dias após expiração
+Plano Free → nunca
 ```
-sub         → userId (UUID)
-tenantId    → UUID da ótica
-branchId    → UUID da filial
-role        → nome do papel (ex: VENDOR)
-permissions → lista de slugs (ex: ["sales:create", "clients:view"])
-issuedAt    → momento da geração
-expiration  → issuedAt + 8 horas
-```
-
-### Regras JWT:
-- `secretKey` via variável de ambiente `JWT_SECRET` — **nunca hardcoded**
-- Token expira em 8 horas (configurável via `jwt.expiration-hours`)
-- Payload é Base64 — **nunca colocar dados sensíveis** (senha, CPF)
-- Permissões no token evitam consulta ao banco a cada requisição
-- Mudança de permissões → usuário sente no próximo login
-
-### Padrão de permissão: `resource:action`
-```
-sales:create        sales:view          sales:cancel
-sales:discount      clients:create      clients:view
-clients:edit        stock:view          stock:edit
-cash:open           cash:close          cash:view
-reports:view        users:manage        roles:configure
-ai:read-prescription notifications:view
-```
-
-### Papéis padrão por tenant:
-| Papel | Acesso |
-|---|---|
-| OWNER | tudo |
-| MANAGER | tudo exceto `users:manage` e `roles:configure` |
-| VENDOR | sales, clients, OS — sem cash e reports financeiros |
-
-### Senha:
-- BCrypt strength 12 no MVP
-- Migrar para Argon2 quando mover para servidor pago
-
-### Swagger em interface separada:
-```java
-// Interface — só documentação Swagger
-@Tag(name = "Service Orders")
-public interface ServiceOrderApi {
-    @Operation(summary = "Open service order")
-    @ApiResponse(responseCode = "201", description = "OS created")
-    @ApiResponse(responseCode = "403", description = "No permission")
-    ResponseEntity<ServiceOrderResponse> create(
-        @RequestBody CreateServiceOrderRequest req);
-}
-
-// Controller — só código, zero anotações Swagger
-@RestController
-@RequestMapping("/api/service-orders")
-public class ServiceOrderController implements ServiceOrderApi {
-    @Override
-    @RequirePermissao("sales:create")
-    public ResponseEntity<ServiceOrderResponse> create(
-            CreateServiceOrderRequest req) {
-        var os = createServiceOrderUseCase.execute(req.toCommand());
-        return ResponseEntity.status(201).body(ServiceOrderResponse.from(os));
-    }
-}
-```
-
----
-
-## Banco de Dados
-
-### Convenções:
-- Tabelas: `snake_case` plural (ex: `service_orders`, `stock_items`)
-- Colunas: `snake_case` (ex: `tenant_id`, `created_at`)
-- PKs: sempre `UUID DEFAULT gen_random_uuid()`
-- FKs: `{entidade}_id` (ex: `client_id`, `vendor_id`)
-- Índices: `idx_{tabela}_{coluna}`
-
-### Tamanhos de campo:
-| Tipo | Tamanho |
-|---|---|
-| Nome de pessoa | VARCHAR(100) |
-| Nome de empresa/ótica | VARCHAR(60) |
-| Email | VARCHAR(100) |
-| Telefone/celular | VARCHAR(20) |
-| CPF | CHAR(11) |
-| CNPJ | CHAR(14) |
-| Senha BCrypt | CHAR(60) |
-| Enums/status curtos | VARCHAR(20-30) |
-| Slug de permissão | VARCHAR(50) |
-| Descrições curtas | VARCHAR(150-200) |
-| Observações | VARCHAR(300-500) |
-| Valores monetários | NUMERIC(10,2) — **nunca FLOAT** |
-| Contadores pequenos | SMALLINT |
-
-### Índices obrigatórios:
-- Todo `tenant_id` — aparece em toda query
-- Todo campo usado em `WHERE`, `JOIN` ou `ORDER BY`
-- Campos de busca do usuário (name, cpf, email)
-- Campos de período em relatórios (created_at, at)
-
-### Regras Flyway:
-- Nomenclatura: `V{n}__{descricao_snake_case}.sql`
-- Arquivo executado = **imutável** — nunca editar
-- Nova alteração = novo arquivo com próxima versão
-- Um arquivo por domínio na criação inicial
 
 ---
 
 ## Domínios — Regras de Negócio
 
-### Contatos (entidade polimórfica)
-- `Client` e `Supplier` têm contatos via tabela `contacts`
-- Sem limite de contatos por entidade
-- Tipos: `MOBILE`, `PHONE`, `EMAIL`, `WHATSAPP`
-- Um contato marcado como `principal = true` por tipo por entidade
-- Contato WhatsApp principal usado para notificações automáticas
-
-```java
-public enum ContactType  { MOBILE, PHONE, EMAIL, WHATSAPP }
-public enum ContactOwner { CLIENT, SUPPLIER }
+### Cadastro do tenant
+```
+Momento 1 (cadastro):  trade_name, responsible_name, responsible_phone, email, senha
+Momento 2 (onboarding): company_name, cnpj, responsible_cpf, logo
+Momento 3 (assinatura): responsible_cpf obrigatório para Mercado Pago
 ```
 
-### Identidade
-- Email único **por tenant** — não globalmente
-- Senha com BCrypt(12)
-- Permissões configuráveis por tenant — sem código
-- Usuário inativo não pode autenticar
-
-### Clientes
-- CPF opcional
-- Cliente pode ter N receitas (histórico completo)
-- Receita pode não ter médico
-- Tipo de receita: `GLASSES` ou `CONTACT_LENS`
-
-### Receita Médica
-- `axis`: sempre entre 0 e 180 — validado no Value Object
-- `addition`: só para bifocal/progressiva
-- `dp` (distância pupilar): opcional
-- Origem na OS: `DOCTOR` | `OPTICIAN` | `CLIENT_INFORMED`
-- `CLIENT_INFORMED` → `observation` obrigatória
-
-### Alerta de Receita Vencendo
-- Job agendado todo dia às 8h
-- Busca receitas vencendo em 30 dias (configurável)
-- Notifica por email no MVP, WhatsApp na Fase 2
-- Registra notificação para evitar duplicatas
-- Habilitável/desabilitável por tenant
-
-### Produtos
-
-**Frame (Armação):**
-- `Frame` = modelo conceitual (marca + modelo)
-- `FrameSku` = variação rastreável (cor + tamanho)
-- Estoque vive no SKU — não no modelo
-
-**LensType (Lente Oftálmica):**
-- Fabricada no laboratório terceirizado sob demanda
-- **Sem estoque físico** — é um catálogo de opções
-- Tipos: `MONOFOCAL` | `BIFOCAL` | `PROGRESSIVE`
-- Materiais: `RESIN` | `POLYCARBONATE` | `TRIVEX`
-- Tratamentos: `NONE` | `ANTI_REFLECTIVE` | `UV` | `PHOTOCHROMIC`
-- Precificação configurável por produto:
-  - `FIXED` → preço único independente do grau
-  - `GRADE_RANGE` → preço por faixa de grau (tabela `lens_grade_ranges`)
-- Gera pedido ao laboratório — não baixa estoque
-
-**ContactLens (Lente de Contato):**
-- Produto físico com estoque — igual à armação
-- Vendida em par por padrão
-- Tem validade — controle de lote
-- Receita própria tipo `CONTACT_LENS`
-- Tipos: `DAILY` | `BIWEEKLY` | `MONTHLY`
-- Pode ser colorida (grau = 0)
-
-**Controle de estoque de lente de contato:**
+### ServiceOrder — Máquina de estados
 ```
-Modo PAR (padrão — tenant não precisa configurar):
-  Estoque conta em pares
-  Vende 1 par → baixa 1
+OPEN → AWAITING_PAYMENT → IN_PRODUCTION → READY → DELIVERED
+                        ↘ AWAITING_REWORK ↗
+Qualquer estado* → CANCELLED
+* exceto DELIVERED e CANCELLED (finais imutáveis)
 
-Modo UNIDADE (habilitável por tenant):
-  Estoque conta em unidades individuais (mesmo pool)
-  Vende 1 par    → baixa 2
-  Vende 1 avulso → baixa 1
+Fluxo configurável: BEFORE_PRODUCTION (padrão) ou BEFORE_DELIVERY
+Toda transição → registro em service_order_history (imutável, audit)
+```
 
-Ao habilitar modo UNIDADE:
-  Sistema converte automaticamente: quantidade × 2
+### number sequencial por tenant
+```
+service_order.number → "OS 42" — cada ótica começa do 1
+sale.number          → "Venda 15"
+purchase_order.number → "Pedido 7"
+
+Calculado pela aplicação no INSERT:
+  SELECT COALESCE(MAX(number), 0) + 1
+  FROM service_order WHERE tenant_id = ?
+```
+
+### Pagamento parcial (entrada mínima)
+```
+minimum_down_payment_percent → configurável por tenant (padrão: 0.50)
+OS avança para IN_PRODUCTION quando: total_paid >= total_net * percent
+payment_status: PENDING → PARTIAL → PAID
 ```
 
 ### Estoque
-- Armação **reservada** ao abrir OS — não baixada ainda
-- Armação **baixada** definitivamente ao status `DELIVERED`
-- OS cancelada → libera reserva automaticamente
-- `quantity_reserved` + `quantity_available` = `quantity_total`
-- Toda movimentação registrada em `stock_movements` (auditoria)
-
-```java
-public enum StockMovementType {
-    ENTRY,        // recebimento fornecedor
-    SALE_EXIT,    // entrega confirmada
-    RESERVATION,  // reserva ao abrir OS
-    CANCELLATION, // liberação por cancelamento
-    ADJUSTMENT    // correção manual (só OWNER/MANAGER)
-}
+```
+quantity = quantity_available + quantity_reserved
+RESERVATION  → OS aberta
+CANCELLATION → OS cancelada (libera reserva)
+SALE_EXIT    → OS entregue (baixa definitiva)
+ENTRY        → pedido de compra recebido (automático)
+ADJUSTMENT   → correção manual (só OWNER/MANAGER)
 ```
 
-### Ordem de Serviço (OS)
-
-**Máquina de estados — fluxo configurável por tenant:**
-
+### Entrega domiciliar
 ```
-PAYMENT_BEFORE_PRODUCTION (padrão):
-  OPEN → AWAITING_PAYMENT → IN_PRODUCTION → READY → DELIVERED
+sale.is_home_delivery = true
+sale.client_address_id → UUID informativo SEM FK constraint
+                          se cliente deletar o endereço, vira orphan — sem problema
+                          o dado real está no snapshot, não nesse campo
 
-PAYMENT_BEFORE_DELIVERY:
-  OPEN → IN_PRODUCTION → READY → AWAITING_PAYMENT → DELIVERED
+sale.delivery_* → snapshot imutável copiado no momento da confirmação
+                   CEP, rua, número, cidade, estado, referência
+                   preservado para sempre independente de qualquer alteração
 
-Estados especiais (qualquer fluxo):
-  IN_PRODUCTION ou READY → AWAITING_REWORK (defeito no lab)
-  AWAITING_REWORK        → IN_PRODUCTION (reenviado)
-  Qualquer estado*       → CANCELLED
+Ao confirmar venda com entrega:
+  1. copia todos os campos de client_address para delivery_*
+  2. guarda client_address_id como referência informativa (sem REFERENCES)
+  3. CHECK garante que snapshot está preenchido quando is_home_delivery = true
 
-* exceto DELIVERED e CANCELLED (estados finais imutáveis)
-```
-
-**Regras:**
-- Toda transição gera registro em `os_history` (auditoria obrigatória)
-- `InvalidStatusTransitionException` para transições inválidas
-- OS cancelada libera reserva de estoque
-- Estados finais `DELIVERED` e `CANCELLED` são imutáveis
-
-### Venda Domiciliar
-- Vendedor acessa o sistema pelo celular via PWA
-- Abre OS normalmente — sem diferença de fluxo
-- Sistema gera comprovante PDF com:
-  - Logo e dados da ótica
-  - Armação escolhida + valor pago
-  - Graus da receita
-  - Prazo de entrega estimado
-  - QR Code para rastrear a OS
-- Se cliente não quiser → nenhuma OS aberta, zero registrado
-- Controle físico da maleta → responsabilidade do vendedor (fora do sistema)
-
-### Vendas
-- Uma venda pode ter uma ou mais OS
-- `total_net = total_gross - discount`
-- Soma dos pagamentos deve ser igual ao `total_net`
-- Desconto exige permissão `sales:discount`
-- Orçamento expira em 7 dias (configurável por tenant)
-- Cancelar venda → cancela todas as OS vinculadas
-- Devolução → estorna pagamento + reabre estoque
-
-**Status da Venda:**
-```
-QUOTE → CONFIRMED → PAID → fim normal
-                         → RETURNED (devolução)
-Qualquer estado → CANCELLED
+Fase 2: client_address com N endereços por cliente, is_default, label, soft delete
 ```
 
-**Formas de pagamento aceitas:**
+### CNPJ por filial
 ```
-CASH | PIX | CREDIT_CARD | DEBIT_CARD
-```
-- Pagamento pode ser dividido entre formas
-- PIX gerado como QR Code na tela (Mercado Pago API)
-- Maquineta física → registrado manualmente pelo vendedor
-- Sistema **não** integra com maquineta no MVP (Fase 2 — Stone)
-- Sistema **não** é gateway de pagamento para o cliente final
+tenant.cnpj   → CNPJ da empresa principal (matriz)
+branch.cnpj   → CNPJ do estabelecimento físico
+                 NULL quando compartilha o CNPJ da matriz
+                 preenchido quando é estabelecimento com número próprio
+                 ex: 12.345.678/0001-90 (matriz) e 12.345.678/0002-71 (filial)
 
-### Financeiro
-- Só um caixa aberto por vez por tenant
-- Todo lançamento exige caixa aberto
-- Caixa fechado é **imutável** — auditoria garantida
-- Venda confirmada gera lançamento automaticamente (evento)
-- Despesas manuais → só OWNER/MANAGER
-- Categorias configuráveis por tenant
-
+Relevante para NF-e na Fase 2:
+  cada CNPJ emite notas fiscais separadamente
+  obrigatório preencher antes de habilitar NF-e por filial
 ```
-Fluxo de caixa = REVENUE - EXPENSE do período
-Lucro = receita vendas - custo produtos - despesas operacionais
+
+### Receita médica
+```
+axis: 0-180 — validado no VO (construtor) E no banco (CHECK)
+addition: só para bifocal/progressiva
+CLIENT_INFORMED: observation obrigatória (auditoria)
+Alerta: job diário 8h, 30 dias antes, anti-duplicata por dia
+```
+
+### Caixa
+```
+1 aberto por branch por vez (unique index parcial WHERE closed_at IS NULL)
+Fechado = imutável (enforced no application layer)
+Venda confirmada → REVENUE automático (event-driven)
+```
+
+### Lente de contato
+```
+PAIR (padrão): 1 venda par → -1 estoque
+UNIT:          1 venda par → -2 estoque; 1 avulso → -1 estoque
+Conversão PAR→UNIT: quantidade atual × 2 (automático ao habilitar)
+```
+
+### Pedido de compra (manual)
+```
+DRAFT → SENT → RECEIVED | CANCELLED
+RECEIVED → cria movimentos ENTRY automaticamente
+```
+
+### Contatos (polimórfico)
+```
+owner_type: CLIENT | SUPPLIER
+type: MOBILE | PHONE | EMAIL | WHATSAPP
+principal = true → usado para notificações
 ```
 
 ---
 
-## Configurações do Tenant
+## Padrões de Código
 
+### Injeção por construtor — sempre
 ```java
-public class TenantSettings {
-    UUID tenantId;
-
-    // Financeiro / vendas
-    PaymentFlow paymentFlow;         // BEFORE_PRODUCTION | BEFORE_DELIVERY
-    int quoteExpirationDays;         // padrão: 7
-
-    // Lentes de contato
-    ContactLensStockUnit stockUnit;  // PAIR | UNIT — padrão: PAIR
-    boolean allowSingleLensSale;     // padrão: false
-
-    // Notificações
-    boolean prescriptionExpiryAlert;     // padrão: true
-    int prescriptionExpiryAlertDays;     // padrão: 30
-
-    // NF-e (Fase 2)
-    boolean nfeEnabled;              // padrão: false
-    String nfeApiToken;              // token Focus NF-e
-}
-```
-
----
-
-## AI — Spring AI
-
-### MVP — Leitura de Receita por Foto
-- Foto enviada como multipart → backend salva no Cloudflare R2
-- Spring AI envia para Claude API (visão computacional)
-- AI retorna JSON estruturado com os graus
-- **Vendedor sempre confirma antes de salvar — AI sugere, humano valida**
-- Registra uso para controle do limite (50/mês no Pro)
-
-```
-Prompt padrão:
-  Analyze this eye prescription and extract the data.
-  Return ONLY valid JSON:
-  { "od": { "spherical", "cylindrical", "axis", "addition" },
-    "oe": { "spherical", "cylindrical", "axis", "addition" },
-    "dp": null }
-  Missing fields must be null.
-  Negative values are valid.
-```
-
-### Alerta de Receita Vencendo (MVP)
-```java
-@Scheduled(cron = "0 0 8 * * *") // todo dia às 8h
-public void checkExpiringPrescriptions() {
-    // busca receitas vencendo em 30 dias
-    // notifica por email
-    // registra para evitar duplicata
-}
-```
-
-### Fase 2+
-- WhatsApp Bot, relatórios linguagem natural
-- Previsão de estoque, CRM inteligente
-- NF-e automática (Focus NF-e)
-- Integração maquineta (Stone)
-- Microsserviço Python (se AI ficar complexa demais)
-
----
-
-## Padrões de Implementação
-
-### TDD — Test Driven Development
-```
-Red   → escreve o teste que falha
-Green → escreve o mínimo de código para passar
-Blue  → refatora mantendo o teste verde
-```
-- Escrever teste ANTES da implementação
-- Pensar nos cenários = pensar nas regras de negócio
-- Todo Use Case tem teste unitário
-- Toda regra de domínio tem teste unitário
-
-### Nomenclatura de testes:
-```java
-// should_{behavior}_when_{condition}
-@Test void should_throw_when_transition_is_invalid() { }
-@Test void should_calculate_total_correctly_with_discount() { }
-@Test void should_return_403_when_permission_is_missing() { }
-@Test void should_reserve_stock_when_service_order_is_opened() { }
-@Test void should_release_stock_when_service_order_is_cancelled() { }
-```
-
-### Use Case
-```java
-// Um Use Case = uma ação de negócio
-// Recebe Command (entrada), retorna resultado
-// Não conhece HTTP, JSON ou Spring
+// nunca @Autowired em campo
+@Service
 public class CreateServiceOrderUseCase {
-    public ServiceOrder execute(CreateServiceOrderCommand command) { }
-}
-```
+    private final ServiceOrderRepository repository;
+    private final StockService stockService;
 
-### Controller
-```java
-// Sempre implementa interface Swagger (spec/)
-// Sempre anotado com @RequirePermissao
-// Converte: Request → Command → UseCase → Response
-// Sem regra de negócio aqui
-@RestController
-@RequestMapping("/api/service-orders")
-public class ServiceOrderController implements ServiceOrderApi {
-    @Override
-    @RequirePermissao("sales:create")
-    public ResponseEntity<ServiceOrderResponse> create(
-            CreateServiceOrderRequest req) {
-        var os = createServiceOrderUseCase.execute(req.toCommand());
-        return ResponseEntity.status(201).body(ServiceOrderResponse.from(os));
+    public CreateServiceOrderUseCase(
+            ServiceOrderRepository repository,
+            StockService stockService) {
+        this.repository   = repository;
+        this.stockService = stockService;
     }
 }
 ```
 
-### Estrutura de pacotes por módulo:
-```
-vendas/
-  ├── domain/
-  │   ├── ServiceOrder.java
-  │   ├── Sale.java
-  │   └── StatusOS.java
-  ├── application/
-  │   ├── CreateServiceOrderUseCase.java
-  │   └── AdvanceServiceOrderStatusUseCase.java
-  ├── infra/
-  │   ├── ServiceOrderRepository.java
-  │   └── SaleRepository.java
-  ├── api/
-  │   ├── ServiceOrderController.java
-  │   ├── spec/
-  │   │   └── ServiceOrderApi.java    ← Swagger aqui
-  │   └── dto/
-  │       ├── CreateServiceOrderRequest.java
-  │       └── ServiceOrderResponse.java
-  └── README.md
-```
-
-### Value Object
+### Records para VOs e DTOs
 ```java
-// Record Java 21 — imutável por padrão
-// Valida no construtor canônico
-public record PrescriptionGrade(
-    Eye eye,
-    BigDecimal spherical,
-    BigDecimal cylindrical,
-    int axis,
-    BigDecimal addition
-) {
+public record PrescriptionGrade(Eye eye, BigDecimal spherical,
+        BigDecimal cylindrical, int axis, BigDecimal addition) {
     public PrescriptionGrade {
         if (axis < 0 || axis > 180)
-            throw new IllegalArgumentException(
-                "Axis must be between 0 and 180");
+            throw new IllegalArgumentException("Axis must be between 0 and 180");
     }
 }
 ```
 
-### Exceções — hierarquia
+### Swagger em interface separada
 ```java
-public abstract class OticaException extends RuntimeException {
-    private final String code;         // técnico — para log
-    private final HttpStatus status;
-    private final String userMessage;  // português — para o usuário final
+// spec/ServiceOrderApi.java — só Swagger
+@Tag(name = "Service Orders")
+public interface ServiceOrderApi {
+    @Operation(summary = "Open service order")
+    ResponseEntity<ServiceOrderResponse> create(@RequestBody CreateServiceOrderRequest req);
 }
 
-// Subclasses:
-BusinessRuleException        → 422 — regra de negócio violada
-ResourceNotFoundException    → 404 — recurso não encontrado
-PermissionDeniedException    → 403 — sem permissão
-PlanLimitException           → 402 — limite do plano atingido
-InvalidStatusTransitionException → 422 — transição inválida
-InsufficientStockException   → 422 — estoque insuficiente
-TenantInactiveException      → 402 — tenant sem assinatura ativa
-```
-
-### Padrão de resposta de erro da API:
-```json
-{
-  "timestamp": "2025-03-24T10:00:00Z",
-  "status": 422,
-  "error": "Unprocessable Entity",
-  "message": "Invalid transition: DELIVERED → IN_PRODUCTION",
-  "userMessage": "Não é possível alterar o status de Entregue para Em Produção.",
-  "path": "/api/service-orders/123/status",
-  "details": []
+// ServiceOrderController.java — só código
+@RestController
+public class ServiceOrderController implements ServiceOrderApi {
+    @Override
+    public ResponseEntity<ServiceOrderResponse> create(CreateServiceOrderRequest req) { ... }
 }
 ```
 
-**Regra:**
-- `message` → técnica, inglês, para dev e log
-- `userMessage` → legível, português, exibida na tela para o usuário
-- `details` → lista de campos com erro (validação Bean Validation)
-
-### SOLID e Design Patterns aplicados:
+### Idioma
 ```
-Single Responsibility → cada Use Case faz uma coisa só
-Open/Closed          → NotificationService é interface (Email, WhatsApp)
-Dependency Inversion → Use Cases dependem de interfaces, não implementações
-Repository Pattern   → acesso a dados por domínio
-Factory              → criação de entidades complexas
-Observer/Event       → venda confirmada → lança no caixa
-Strategy             → precificação FIXED vs GRADE_RANGE
-State                → máquina de estados da OS e Venda
+Inglês   → código, variáveis, classes, pacotes, banco
+Português → userMessage (erro ao usuário), docs ADR, README de módulo
 ```
 
 ---
 
-## Testes — Pirâmide
+## TDD
 
 ```
-10% — Testes de API (MockMvc)
-      Controllers, Auth, RBAC, cenários de 403
+Red → Green → Blue
+70% unitários (JUnit 5 + Mockito)
+20% integração (Testcontainers)
+10% API (MockMvc)
 
-20% — Testes de Integração (Testcontainers + PostgreSQL real)
-      Repositories, Use Cases com banco real, constraints, migrations
-
-70% — Testes Unitários (JUnit 5 + Mockito)
-      Domain, Application — sem Spring, sem banco, rápidos
-```
-
-**Obrigatório testar:**
-- Toda transição de estado (OS, Venda)
-- Cálculo de total com e sem desconto
-- Reserva e baixa de estoque
-- Liberação de reserva ao cancelar
-- Validação de grau (eixo 0–180)
-- Limite do plano atingido
-- Tenant isolation (tenant A não acessa dados do tenant B)
-- Precificação FIXED e GRADE_RANGE
-- Conversão de estoque PAR → UNIDADE
-- Expiração do período de teste
-
----
-
-## Documentação
-
-### Quatro níveis obrigatórios:
-1. **ADR** → `docs/adr/` — decisões arquiteturais (contexto, decisão, consequências)
-2. **Javadoc** → apenas onde há regra não óbvia ou comportamento crítico
-3. **README por módulo** → responsabilidade, conceitos, regras, como estender
-4. **Swagger** → SpringDoc OpenAPI em interface separada — `/swagger-ui.html`
-
-### Guias em `docs/guides/`:
-```
-como-criar-modulo.md
-como-criar-migration.md
-como-criar-endpoint.md
-como-criar-use-case.md
-como-criar-excecao.md
-como-criar-teste.md
+Nomenclatura:
+  should_{behavior}_when_{condition}
+  should_preserve_delivery_address_when_client_deletes_it()
+  should_reject_token_when_version_mismatch()
+  should_reserve_stock_when_service_order_is_opened()
 ```
 
 ---
 
-## Infraestrutura MVP
+## Exceções
 
-```
-Servidor app + BD  → Railway (~R$ 55/mês)
-Storage fotos      → Cloudflare R2 (grátis até 10GB)
-Email              → Resend (grátis até 3k/mês)
-Domínio            → R$ 40-60/ano (.com.br)
-SSL                → Grátis (Railway automático)
-Assinatura SaaS    → Mercado Pago recorrência
-PIX QR Code        → Mercado Pago API (0,99% por transação)
-
-Total fixo MVP: ~R$ 60/mês
-Coberto com 1 cliente pagante (R$ 149)
-```
-
----
-
-## Ponto de Equilíbrio Financeiro
-
-```
-Custo fixo:           R$  60/mês
-AI (50 clientes):     R$ 200/mês (estimativa)
-Total:                R$ 260/mês
-
-2 clientes pagantes → R$ 298/mês → cobre tudo
-Lucro começa no 3º cliente
-
-Projeção:
-   20 clientes →  R$  2.980/mês
-   50 clientes →  R$  7.450/mês
-  100 clientes →  R$ 14.900/mês
+```java
+BusinessRuleException            → 422
+ResourceNotFoundException        → 404
+PermissionDeniedException        → 403
+PlanLimitException               → 402
+InvalidStatusTransitionException → 422
+InsufficientStockException       → 422
+TenantInactiveException          → 402
+InvalidTokenException            → 401
+SecurityViolationException       → 403
 ```
 
 ---
 
-## Decisões de MVP — o que NÃO implementar agora
+## O que NÃO implementar no MVP
 
 | Feature | Decisão |
 |---|---|
-| NF-e | Fase 2 — integração Focus NF-e API |
+| client_address / entrega | Fase 2 (V9 já criada, aguarda implementação) |
 | WhatsApp Bot | Fase 2 |
-| Plano Max | Fase 2 — R$ 347/mês |
-| Filiais múltiplas | Fase 2 |
-| Integração maquineta | Fase 2 — Stone primeiro |
-| Microsserviço Python AI | Fase 2 — Spring AI suficiente no MVP |
+| SMS | Fase 2 |
+| NF-e / NFC-e | Fase 2 |
+| Múltiplas filiais | Fase 2 |
+| Integração maquineta (Stone) | Fase 2 |
+| Email marketing | Fase 2 |
+| Etiquetas ZPL | Fase 2 |
+| Validação CNPJ via ReceitaWS | Fase 2 |
+| Verificação celular por código | Fase 2 |
 | Redis / cache | Fase 2 |
+| GraphQL | Não — REST suficiente |
+| Plano Free | Nunca |
 | Crediário próprio | Nunca |
 | Convênio | Nunca |
-| Plano Free | Nunca |
-| Microsserviços | Futuro distante |
-
----
-
-## Visão de Longo Prazo — Portfólio de SaaS Verticais
-
-```
-Ano 1 → Optical Manager MVP Saas        → valida arquitetura e modelo de negócio
-Ano 2 → Petshop SaaS      → 2-3 meses (boilerplate pronto)
-Ano 3 → Veterinário SaaS  → 2-3 meses
-Ano 4 → Mercadinho SaaS   → mais complexo, maior ticket
-...
-```
-
-**O que é reaproveitado em todo novo SaaS:**
-- Arquitetura DDD + monolito modular
-- Multi-tenancy + JWT + RBAC configurável
-- Flyway + PostgreSQL + padrões de banco
-- Spring AI com prompts diferentes
-- Padrão de exceções e respostas de API
-- Mercado Pago assinatura recorrente
-- Landing page + cadastro self-service
-- Período de teste 14 dias
-- Deploy Railway
-- Estrutura de testes
