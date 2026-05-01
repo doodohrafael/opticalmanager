@@ -15,10 +15,14 @@ Este documento detalha as convenções de codificação e padrões técnicos que
 - **Constantes**: `SCREAMING_SNAKE_CASE` (ex: `MAX_RETRIES`).
 - **Pacotes**: Minúsculos, sem sublinhados (ex: `br.com.rebootsystems.opticalmanager.shared`).
 
-## 3. Imutabilidade e Records
+### 3. Imutabilidade e Records
 - **Records**: Use `record` sempre que possível para DTOs e Value Objects.
 - **Final**: Use a palavra-chave `final` para variáveis locais e campos de classe que não devem ser reatribuídos após a inicialização.
 - **Injeção de Dependência**: Prefira injeção via construtor com campos `private final`.
+
+### 4. Consultas ao Banco
+- **SQL Nativo**: Implementar **sempre** consultas nativas (`nativeQuery = true`) para aproveitar o máximo do PostgreSQL e garantir performance. Evitar JPQL ou Criteria API.
+
 
 ## 4. Tratamento de Exceções
 - **Checked Exceptions**: Evite o uso de exceções verificadas (`Exception`). Prefira exceções não verificadas (`RuntimeException`).

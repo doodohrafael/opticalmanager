@@ -1,13 +1,29 @@
 # Regras de Negócio e Domínios — Optical Manager
 
-## Domínios Principais e Regras
-
 ### 1. Clientes e Contatos
 - **Contatos**: Entidade polimórfica associada a Clientes e Fornecedores. Tipos: `MOBILE`, `PHONE`, `EMAIL`, `WHATSAPP`.
 - **Principal**: Cada tipo pode ter um contato marcado como principal. O `WHATSAPP` principal é usado para notificações automáticas.
 - **Isolamento**: Email é único **por tenant**, não globalmente.
 
-### 2. Receita Médica
+---
+
+## 2. Cadastro do Tenant e Trial
+
+### Cadastro em Duas Fases
+1. **Fase 1 (Auto-cadastro)**: `trade_name`, `responsible_name`, `responsible_phone`, `email`, senha. Acesso bloqueado até confirmação de email.
+2. **Fase 2 (Onboarding)**: `company_name`, `cnpj`, `responsible_cpf`, `logo`.
+- **Email Único**: O email é a identidade global (login + faturamento).
+- **Responsible Phone**: Sempre o WhatsApp do dono da ótica.
+
+### Trial e Assinatura
+- **Trial**: 14 dias grátis, sem cartão. Alertas nos dias 12 e 13. Bloqueio no dia 14.
+- **Assinatura**: Obrigatória para uso após trial. `responsible_cpf` é mandatório para integração com Mercado Pago.
+- **Plano Free**: Inexistente. O modelo é focado em SaaS de baixo custo (R$ 149/mês).
+
+---
+
+## 3. Receita Médica
+
 - **Eixo (Axis)**: Deve estar entre 0 e 180 (validado no Value Object).
 - **Adição**: Usada apenas para lentes bifocais ou progressivas.
 - **Origem**: `DOCTOR` (Médico), `OPTICIAN` (Optometrista) ou `CLIENT_INFORMED` (Informado pelo cliente). No caso de `CLIENT_INFORMED`, o campo de observação é obrigatório.
@@ -32,10 +48,15 @@
 - **Modo de Venda**:
   - **PAR (Padrão)**: Estoque contado em pares.
   - **UNIDADE**: Habilitável por tenant. Ao habilitar, o sistema converte automaticamente `quantidade * 2`.
+- **Tipos**: `GLASSES` (Óculos) ou `CONTACT_LENS` (Lente de Contato).
+
+### 4. Numeração Sequencial por Tenant
+- **Campos**: `service_order.number`, `sale.number`, `purchase_order.number`.
+- **Lógica**: Cada ótica começa do número 1. Calculado no `INSERT` via: `MAX(number) + 1` filtrado pelo `tenant_id`.
 
 ---
 
-## Ordem de Serviço (OS)
+## 5. Ordem de Serviço (OS) e Vendas
 
 ### Máquina de Estados (Fluxo Configurável)
 O tenant escolhe o momento do pagamento:
@@ -51,9 +72,39 @@ O tenant escolhe o momento do pagamento:
 - `CANCELLED`: Pode ser atingido de qualquer estado (exceto finais).
 - **Imutabilidade**: Estados `DELIVERED` e `CANCELLED` são finais e nunca podem ser alterados.
 
+### Pagamento Parcial (Entrada Mínima)
+- `minimum_down_payment_percent`: Configurável por tenant (Padrão: 0.50).
+- **Avanço**: A OS avança automaticamente para `IN_PRODUCTION` quando `total_paid >= total_net * percent`.
+
 ---
 
-## Vendas e Financeiro
+## 6. Produtos e Estoque
+
+### Lógica de Movimentação
+- `quantity = quantity_available + quantity_reserved`
+- **RESERVATION**: Reservado ao abrir a OS.
+- **SALE_EXIT**: Baixa definitiva ao entregar a OS (`DELIVERED`).
+- **CANCELLATION**: Libera reserva ao cancelar OS.
+- **ENTRY**: Entrada automática ao receber pedido de compra.
+
+### Lentes de Contato (PAR vs UNIDADE)
+- **PAIR (Padrão)**: 1 venda par = -1 estoque.
+- **UNIT**: 1 venda par = -2 estoque.
+- **Conversão**: Ao trocar para `UNIT`, o sistema converte a quantidade atual (`quantidade * 2`).
+
+### Pedido de Compra
+- **Fluxo**: `DRAFT → SENT → RECEIVED | CANCELLED`.
+- **Recebimento**: Status `RECEIVED` dispara movimentações de `ENTRY` no estoque automaticamente.
+
+---
+
+## 7. Filiais e Fiscal (CNPJ)
+- **Branch CNPJ**: Cada filial pode ter seu próprio CNPJ. Se for `NULL`, utiliza-se o CNPJ do `Tenant` (matriz).
+- **Fase 2**: Obrigatório preencher CNPJ da filial para habilitar emissão de NF-e por estabelecimento.
+
+---
+
+## 8. Vendas e Financeiro
 
 ### Venda Domiciliar (PWA)
 - Vendedor utiliza o sistema via celular.

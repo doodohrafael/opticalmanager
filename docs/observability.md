@@ -9,9 +9,12 @@
 ### 1.2. Métricas
 - **Padrão**: Micrometer com Prometheus.
 - **Exposição**: Endpoint `/actuator/prometheus`.
-- **Tipos**: Counters, Gauges, Timers, Distribution Summaries.
-- **Nomenclatura**: Clara e consistente (ex: `http.server.requests`, `jvm.memory.used`, `app.custom.metric.name`).
-- **Tags**: Utilizar tags relevantes para filtragem e agregação (ex: `http.status_code`, `app.tenant_id`, `app.user_id`, `app.operation_name`).
+- **Dashboards**: **Grafana Cloud** (Free Tier: 10k séries, 14 dias de retenção).
+- **Métricas de Negócio**:
+  - `os.opened`: Contador de OS abertas.
+  - `ai.prescription.read`: Contador de uso da IA.
+  - `sale.confirmed`: Contador de vendas fechadas.
+  - `plan.os.usage`: Gauge de percentual de uso do plano mensal.
 
 ### 1.3. Tracing (Rastreamento Distribuído)
 - **Ferramenta**: [Micrometer Tracing](https://micrometer.io/docs/tracing) (anteriormente Spring Cloud Sleuth).

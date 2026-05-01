@@ -7,28 +7,41 @@ O sistema utiliza autenticação stateless baseada em JSON Web Tokens (JWT) e co
 ### 1. Payload do JWT
 O token gerado após o login contém as informações necessárias para autorizar a requisição sem consultar o banco de dados:
 ```
-sub         → userId (UUID)
-tenantId    → UUID do tenant (ótica)
-branchId    → UUID da filial (branch)
-role        → Nome do papel principal (ex: VENDOR)
-permissions → Lista de slugs (ex: ["sales:create", "clients:view"])
-exp         → Expiração (Padrão: 8 horas)
+sub          → userId (UUID)
+tenantId     → UUID do tenant (ótica)
+branchId     → UUID da filial (branch)
+role         → Nome do papel principal (ex: VENDOR)
+permissions  → Lista de slugs (ex: ["sales:create", "clients:view"])
+tokenVersion → Versão do token para invalidação (default: 0)
+exp          → Expiração (Access Token: 1 hora)
 ```
 
-### 2. Padrão de Permissão
-As permissões seguem o formato `resource:action`:
-- `sales:create`, `sales:cancel`, `sales:discount`
-- `clients:create`, `clients:view`, `clients:edit`
-- `stock:view`, `stock:edit`
-- `cash:open`, `cash:close`
-- `ai:read-prescription`
+**Expiração e Rotação:**
+- **Access Token**: 1 hora.
+- **Refresh Token**: 7 dias, armazenado como SHA-256 no banco e rotacionado a cada uso.
+- **Token Versioning**: Ao mudar permissões críticas, incrementa-se o `token_version` no banco. JWTs com versão divergente são rejeitados (401), forçando novo login.
 
-### 3. Papéis Padrão (Roles)
-| Papel | Descrição do Acesso |
+### 2. Papéis Padrão (Roles)
+Cada tenant nasce com papéis pré-configurados:
+
+| Papel | Permissões | Descrição |
+|---|---|---|
+| **OWNER** | Todas | Acesso total, incluindo gestão de usuários e papéis. |
+| **MANAGER** | Todas exceto `users:*` | Acesso operacional e financeiro total. |
+| **VENDOR** | Vendas e Clientes | Sem acesso ao financeiro/caixa ou administração. |
+
+### 3. Catálogo de Permissões (`resource:action`)
+
+| Recurso | Ações Disponíveis |
 |---|---|
-| **OWNER** | Acesso total ao sistema, incluindo gestão de usuários e configurações. |
-| **MANAGER** | Acesso operacional e financeiro total, exceto gestão de usuários e papéis. |
-| **VENDOR** | Acesso a vendas, clientes e ordens de serviço. Sem acesso ao financeiro/caixa. |
+| **Sales** | `create`, `view`, `cancel`, `discount` |
+| **Clients** | `create`, `view`, `edit` |
+| **Stock** | `view`, `edit`, `purchase-order` |
+| **Cash** | `open`, `close`, `view` |
+| **AI** | `read-prescription` |
+| **Admin** | `users:manage`, `roles:configure`, `notifications:view` |
+| **Reports** | `view` |
+| **Labels** | `print` |
 
 ---
 

@@ -17,8 +17,12 @@
 | Storage fotos | Cloudflare R2 |
 | Email transacional | Resend (grátis até 3k/mês) |
 | Pagamento assinatura SaaS | Mercado Pago (recorrência) |
-| PIX QR Code na ótica | Mercado Pago API |
-| Frontend | React + Tailwind CSS (PWA) |
+| Camada | Tecnologia | Versão |
+|---|---|---|
+| Linguagem | Java 25 | |
+| Framework | Spring Boot | 4.0.5 |
+| Spring AI | Spring AI | 1.0.5 estável |
+| SpringDoc | OpenAPI | 2.8.6 |
 
 ---
 
@@ -45,32 +49,54 @@ modulo/
 
 ## Padrões de Implementação
 
-### 1. Use Cases
+### 1. Injeção de Dependência
+- **Sempre** utilize injeção via construtor com campos `private final`.
+- **NUNCA** utilize `@Autowired` em campos.
+
+### 2. Use Cases
 - Um Use Case por ação de negócio.
 - Recebe um `Command` (entrada), executa a lógica e retorna o resultado.
 - **NUNCA** deve conhecer detalhes de HTTP ou frameworks.
 
-### 2. Controllers
+### 3. Controllers
 - Devem apenas delegar para o Use Case.
 - Implementam obrigatoriamente a interface correspondente em `api/spec/`.
 - Usam `@RequirePermissao("recurso:acao")` para segurança.
 
-### 3. Value Objects (Records)
+### 4. Value Objects (Records)
 - Usar `record` para imutabilidade.
 - Validação obrigatória no construtor canônico.
 
-### 4. Tratamento de Erros
-Usamos uma hierarquia baseada em `OticaException`:
+### 5. Swagger em interface separada
+- A documentação OpenAPI fica em interfaces no pacote `spec`, mantendo o Controller limpo apenas com a lógica de delegação.
+
+---
+
+## Testes e Qualidade (TDD)
+Seguimos a pirâmide de testes:
+- **70% Unitários**: JUnit 5 + Mockito.
+- **20% Integração**: Testcontainers (PostgreSQL, R2).
+- **10% API**: MockMvc.
+
+**Nomenclatura**: `should_{behavior}_when_{condition}`
+Ex: `should_reserve_stock_when_service_order_is_opened()`
+
+---
+
+## Tratamento de Erros
+Hierarquia baseada em `OticaException`:
 - `BusinessRuleException` (422)
 - `ResourceNotFoundException` (404)
+- `PermissionDeniedException` (403)
 - `PlanLimitException` (402)
+- `InvalidStatusTransitionException` (422)
 - `InsufficientStockException` (422)
+- `TenantInactiveException` (402)
+- `InvalidTokenException` (401)
+- `SecurityViolationException` (403)
 
 **Padrão de Resposta de Erro (JSON):**
-```json
-{
-  "timestamp": "2025-03-24T10:00:00Z",
-  "status": 422,
+
   "error": "Unprocessable Entity",
   "message": "Invalid transition: DELIVERED -> IN_PRODUCTION",
   "userMessage": "Não é possível alterar o status de Entregue para Em Produção.",
